@@ -1,0 +1,26 @@
+# Slurm job artifacts
+slurm-*.out
+*.log
+
+# enroot / container images
+*.sqsh
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+.venv/
+
+# Data, checkpoints, model outputs
+data/
+datasets/
+checkpoints/
+*.ckpt
+*.pt
+*.safetensors
+
+# Local / editor
+.env
+.DS_Store
+.vscode/

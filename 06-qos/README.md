@@ -10,6 +10,33 @@ Project and general jobs are never preempted. Caps bound the GPUs you can run at
 
 ## See your limits
 
+### The short way: `mylimits`
+
+```
+mylimits
+```
+
+```
+  User          jsmith
+  Account       my-group
+  Default QOS   my-group   (applied automatically when you do not pass --qos)
+
+  QOS            GPU cap    Per-group    Priority  Preemptible
+  ---------------------------------------------------------------------------
+  my-group       11         -            3000      no
+  general        40         5            2000      no
+  spot           no cap     -            1000      yes (00:10:00 grace)
+
+  Right now
+  ---------------------------------------------------------------------------
+  Running       2 job(s), 6 GPU(s)
+  Pending       3 job(s), of which 1 waiting at your GPU cap (QOSGrpGRES)
+```
+
+It reads the accounting database and changes nothing, so it is safe to run any time. If it is not on your `PATH` yet, run it from this repo with `bash 06-qos/mylimits`, or ask support to install it cluster-wide (`sudo install -m 0755 mylimits /software/bin/mylimits`).
+
+The rest of this page is what `mylimits` runs underneath, useful when you want a specific field or are scripting against it.
+
 ### Which QOS can I use, and what is my default?
 
 ```

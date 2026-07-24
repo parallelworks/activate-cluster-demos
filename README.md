@@ -16,7 +16,7 @@ cd activate-cluster-demos
 | `03-jupyter` | A Jupyter notebook on a GPU node over an SSH tunnel |
 | `04-ray` | A Ray cluster on Slurm, with jobs submitted from your laptop |
 | `05-k8s` | Kubernetes (CKS) namespace access and quotas |
-| `06-qos` | How GPUs are shared, and how to see your own limits |
+| `06-qos` | How GPUs are shared, plus `mylimits` to see your own caps and usage |
 
 ## Getting on the cluster
 
@@ -26,7 +26,7 @@ Your account is provisioned in ACTIVATE at activate.parallel.works; set your pas
 
 The cluster runs Slurm. There is a single GPU partition, `h100`, and it is the default, so you do not have to name it; including `-p h100` is fine and harmless.
 
-Every group has a group QOS, called your Project QOS, and it is your default. It caps the number of GPUs your group can run at once at the number your team was allocated; you never type it. On top of that, `--qos=general` bursts into a shared pool up to a per-group limit, and `--qos=spot` is uncapped and preemptible: spot jobs run on idle GPUs and can be reclaimed with a 10-minute grace window, then requeue, so checkpoint your work. Project and general jobs are never preempted. See `06-qos` for the commands to view your own limits.
+Every group has a group QOS, called your Project QOS, and it is your default. It caps the number of GPUs your group can run at once at the number your team was allocated; you never type it. On top of that, `--qos=general` bursts into a shared pool up to a per-group limit, and `--qos=spot` is uncapped and preemptible: spot jobs run on idle GPUs and can be reclaimed with a 10-minute grace window, then requeue, so checkpoint your work. Project and general jobs are never preempted. To see your own QOS, cap, and current usage, run `mylimits` (in `06-qos`, or already on your PATH if support has installed it cluster-wide). `06-qos/README.md` documents the underlying `sacctmgr` commands.
 
 ## Run a PyTorch job
 

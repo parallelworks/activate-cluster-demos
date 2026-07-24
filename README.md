@@ -37,6 +37,8 @@ srun -p h100 --gpus=1 python 01-pytorch/gputest.py
 
 Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. The batch skeleton `01-pytorch/train.sh` shows the 8-GPU `torchrun` form; multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
 
+Start every batch script with `#!/bin/bash -l`. See Troubleshooting below for why.
+
 ## Containers with pyxis and enroot
 
 ```
@@ -80,6 +82,29 @@ ray job submit --working-dir 04-ray -- python train_torch.py
 ## Where your data lives
 
 Your home `/home/<username>` (small quota) holds code and environments; your group's `/project/<group>` (large, shared, on every node) holds datasets and results; `/software` is the Lmod module tree. Each GPU server also has fast node-local NVMe scratch that is ephemeral, so copy results back to your project directory.
+
+## Troubleshooting
+
+**`module: command not found`, or `python`/`ray`/`jupyter` not found in a job.** This is the most common problem, and it is almost always a login-shell issue. `module` is defined by the shell profile, which only runs in a login shell. An interactive SSH session is a login shell, so `module load pytorch` works when you type it. A batch script is not, so the same line inside a plain `#!/bin/bash` script fails, and every command the module was supposed to provide fails after it.
+
+Start batch scripts with a login shell:
+
+```
+#!/bin/bash -l
+#SBATCH -p h100 --gpus=1
+module load pytorch
+python train.py
+```
+
+The same applies to any non-interactive command, for example over SSH: use `pw ssh nodescluster "bash -lc 'module load pytorch; python train.py'"`. If you need a fallback inside a script, `command -v module >/dev/null || source /etc/profile.d/lmod.sh` restores it. The example scripts in this repo all do this.
+
+Watch out for pipes too: `module load pytorch | tee log` runs the load in a subshell, so the module is not loaded in your script. Load first, then run.
+
+**`srun` says `execve(): python: No such file or directory`.** The module was not loaded in the environment `srun` inherited. Run `module load pytorch` in the same shell first, then `srun`, and confirm with `command -v python`; it should be under `/software`.
+
+**A job sits in `PENDING` with reason `QOSGrpGRES`.** That is your GPU cap, not an error. The job starts as your running jobs finish. See `06-qos` for how to view your limits.
+
+**`Module ERROR: Magic cookie '#%Module' missing`.** Cosmetic Lmod noise from a stray file in the module tree; it does not affect your job. Report it to support and we will clear it.
 
 ## Getting help
 

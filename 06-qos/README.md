@@ -1,27 +1,72 @@
-# QOS: how GPUs are shared, and how to see your limits
+# QOS: how GPUs are shared, and how to see your own limits
 
-The cluster uses Slurm QOS to share GPUs across groups on the single `h100` partition.
+The cluster runs a single GPU partition, `h100`, and it is the default, so you do not have to name it. GPUs are shared across groups with Slurm QOS.
 
-- Your **Project QOS** is your default. It caps how many GPUs your group can run at once, at your group's allocation. You never type it; it applies to every job.
-- `--qos=general` bursts into a shared pool, up to a per-group limit, when the pool is free.
-- `--qos=spot` is uncapped and preemptible: it runs on idle GPUs and can be reclaimed when a Project or general job needs the capacity. You get a 10-minute grace window and the job requeues, so checkpoint your work.
+- Your **Project QOS** is your default. It caps how many GPUs your group can run at once, at your group's allocation. You never type it; it applies to every job automatically.
+- **`--qos=general`** bursts into a shared pool, up to a per-group limit, when the pool is free.
+- **`--qos=spot`** is uncapped and preemptible. It runs on otherwise idle GPUs and can be reclaimed when a Project or general job needs the capacity; you get a 10-minute grace window and the job requeues. Checkpoint your work.
 
-Project and general jobs are never preempted. Caps bound the GPUs you run at once, never how many jobs you can queue.
+Project and general jobs are never preempted. Caps bound the GPUs you can run at once, never how many jobs you can queue: submit as much as you like, and work starts as capacity frees up.
 
-## See your limits and available QOS
+## See your limits
+
+### Which QOS can I use, and what is my default?
 
 ```
-# which QOS you can use, and your default
 sacctmgr show assoc user=$USER format=Account,QOS,DefaultQOS
+```
 
-# the GPU cap on each QOS you can use (the gres/gpu= value is the GPU limit)
-sacctmgr show qos <yourgroup>,general,spot format=Name,GrpTRES,MaxTRESPerAccount
+```
+   Account                     QOS             DefaultQOS
+---------- ----------------------- ----------------------
+ my-group     my-group,general,spot               my-group
+```
 
-# your jobs; a REASON of QOSGrpGRES means you are at your GPU cap
+Read it as: your account is `my-group`, you may submit under `my-group` (your Project QOS), `general`, or `spot`, and if you do not pass `--qos` you get `my-group`.
+
+### What is my GPU cap?
+
+```
+sacctmgr show qos $(sacctmgr -n show assoc user=$USER format=DefaultQOS%20 | head -1 | tr -d ' '),general,spot \
+  format=Name,GrpTRES%28,MaxTRESPerAccount%22,Priority
+```
+
+Or simply name them, substituting your group:
+
+```
+sacctmgr show qos my-group,general,spot format=Name,GrpTRES%28,MaxTRESPerAccount%22,Priority
+```
+
+```
+      Name                      GrpTRES              MaxTRESPA  Priority
+---------- ---------------------------- ---------------------- ---------
+  my-group    cpu=176,gres/gpu=11,mem=+                              3000
+   general    cpu=640,gres/gpu=40,mem=+   cpu=80,gres/gpu=5,mem+      2000
+      spot                                                           1000
+```
+
+The number after **`gres/gpu=`** is the GPU limit. `GrpTRES` is the ceiling for the whole QOS; on `general`, `MaxTRESPerAccount` is the most any one group may take from that shared pool at a time. `spot` has no cap. Higher `Priority` wins when jobs compete, which is why Project jobs outrank general, and general outranks spot.
+
+Add `%NN` after a column name to widen it, as above; without it Slurm truncates the value with a `+`.
+
+### What am I running, and why is something waiting?
+
+```
 squeue --me
+```
 
-# your usage
-sacct -X --format=JobID,QOS,Elapsed,State
+A `REASON` of **`QOSGrpGRES`** means your group is at its GPU cap and the job starts automatically as your own jobs finish. `Priority` or `Resources` means the cluster is simply busy. To see the QOS a job is using:
+
+```
+squeue --me -O JobID,Name,QOS,State,Reason
+scontrol show job <jobid> | grep -E "QOS|Reason|TRES"
+```
+
+### What have I used?
+
+```
+sacct -X --format=JobID,JobName%16,QOS,AllocTRES%28,Elapsed,State
+sacct -X --starttime now-7days --format=JobID,QOS,Elapsed,State
 ```
 
 ## Submit under a QOS
@@ -31,3 +76,23 @@ sbatch sweep.sh                 # your Project QOS, applied by default
 sbatch --qos=general sweep.sh   # burst into the shared pool
 sbatch --qos=spot bigscan.sh    # preemptible, uncapped; checkpoint your work
 ```
+
+Interactive work takes the same flags:
+
+```
+srun --gpus=1 --pty bash -i
+srun --qos=general --gpus=2 --pty bash -i
+```
+
+## Making spot jobs safe to preempt
+
+A preempted spot job is requeued, so it will run again from the start unless it can resume. Write checkpoints to your project directory and look for one on startup:
+
+```
+#!/bin/bash -l
+#SBATCH --qos=spot --gpus=1 --requeue
+module load pytorch
+python train.py --checkpoint-dir /project/$GROUP/ckpt --resume-if-exists
+```
+
+Spot is the right choice for large sweeps, scans, and anything that checkpoints cheaply. Keep deadline work on your Project QOS.

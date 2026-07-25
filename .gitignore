@@ -1,5 +1,6 @@
-# Slurm job artifacts
+# Slurm job artifacts (scripts here write <jobname>-<jobid>.out)
 slurm-*.out
+*.out
 *.log
 
 # enroot / container images

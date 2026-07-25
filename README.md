@@ -35,7 +35,7 @@ module load pytorch
 srun -p h100 --gpus=1 python 01-pytorch/gputest.py
 ```
 
-Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. `01-pytorch/train.sh` runs the 8-GPU `torchrun` form against `train.py` (a few steps on synthetic data, so it runs as-is); multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
+Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. `01-pytorch/train.sh` runs the 8-GPU `torchrun` form against `train.py` (a few steps on synthetic data, so it runs as-is; output lands in `train-<jobid>.out`); multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
 
 Ready-made job scripts for the common cases live in `/software/templates/` on the cluster.
 
@@ -53,7 +53,7 @@ Use glibc images such as ubuntu:22.04 or the NGC catalog, not ubuntu:latest or a
 ```
 sbatch 03-jupyter/jupyter.sh
 squeue --me                            # note the node
-grep -o "http://.*token=.*" slurm-<jobid>.out | head -1
+grep -o "http://.*token=.*" jupyter-<jobid>.out | head -1
 ```
 
 On your laptop, open a tunnel and browse to the notebook:

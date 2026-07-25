@@ -16,7 +16,7 @@ cd activate-cluster-demos
 | `03-jupyter` | A Jupyter notebook on a GPU node over an SSH tunnel |
 | `04-ray` | A Ray cluster on Slurm, with jobs submitted from your laptop |
 | `05-k8s` | Kubernetes (CKS) namespace access and quotas |
-| `06-qos` | How GPUs are shared, plus `mylimits` / `myquota` to see your caps and usage |
+| `06-qos` | How GPUs are shared, `mylimits` / `myquota`, and a runnable `example-job.sh` |
 
 ## Getting on the cluster
 
@@ -35,7 +35,7 @@ module load pytorch
 srun -p h100 --gpus=1 python 01-pytorch/gputest.py
 ```
 
-Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. The batch skeleton `01-pytorch/train.sh` shows the 8-GPU `torchrun` form; multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
+Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. `01-pytorch/train.sh` runs the 8-GPU `torchrun` form against `train.py` (a few steps on synthetic data, so it runs as-is); multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
 
 Ready-made job scripts for the common cases live in `/software/templates/` on the cluster.
 

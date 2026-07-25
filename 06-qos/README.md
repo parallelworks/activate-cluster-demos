@@ -6,13 +6,13 @@ The cluster runs a single GPU partition, `h100`, and it is the default, so you d
 - **`--qos=general`** bursts into a shared pool, up to a per-group limit, when the pool is free.
 - **`--qos=spot`** is uncapped and preemptible. It runs on otherwise idle GPUs and can be reclaimed when a Project or general job needs the capacity; you get a 10-minute grace window and the job requeues. Checkpoint your work.
 
-Project and general jobs are never preempted. Caps bound the GPUs you can run at once, never how many jobs you can queue: submit as much as you like, and work starts as capacity frees up.
+Project and general jobs are never preempted. Caps bound the GPUs you can run at once, never how many jobs you can queue: submit as much as you like, and work starts as capacity frees up. Time limits differ by tier: your Project QOS has none, `general` allows up to 3 days, and `spot` up to 1 day.
 
 ## See your limits
 
-### The short way: `mylimits`
+### The short way: `mylimits` (also available as `myquota`)
 
-`mylimits` is installed on the cluster and answers this in one shot:
+`mylimits` is installed on the cluster and answers this in one shot. `myquota` is the same command under a second name, so either works:
 
 ```
 mylimits
@@ -38,6 +38,8 @@ Storage
   /home/jsmith (home)        3.1G       1.0T
   /project/my-group          412G       50T
 ```
+
+Reading it: the `PROJECT (ACCOUNT)` block is which QOS you may submit under and which one applies by default. `GPU LIMIT` is the cap, and on `general` the shared pool total is shown alongside the per-project share of it. `MAX WALLTIME` is worth noting: your Project QOS has no time limit, but `general` jobs are capped at 3 days and `spot` jobs at 1 day.
 
 It only reads the accounting database and the filesystem, so it is safe to run any time. You see your own group's limits; the shared `general` pool and `spot` are visible to everyone.
 

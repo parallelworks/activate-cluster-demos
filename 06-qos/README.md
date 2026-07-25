@@ -108,11 +108,23 @@ sacct -X --starttime now-7days --format=JobID,QOS,Elapsed,State
 
 ## Submit under a QOS
 
+`example-job.sh` in this folder is a small GPU job that prints the QOS it ran under, so you can watch the tiers behave:
+
 ```
-sbatch sweep.sh                 # your Project QOS, applied by default
-sbatch --qos=general sweep.sh   # burst into the shared pool
-sbatch --qos=spot bigscan.sh    # preemptible, uncapped; checkpoint your work
+sbatch 06-qos/example-job.sh                 # your Project QOS, applied by default
+sbatch --qos=general 06-qos/example-job.sh   # burst into the shared pool
+sbatch --qos=spot    06-qos/example-job.sh   # preemptible; checkpoint real work
 ```
+
+```
+job    : 132
+node   : slurm-h100-196-227
+qos    : general
+account: my-group
+gpu    : NVIDIA H100 80GB HBM3
+```
+
+Swap in your own script the same way; the `--qos` flag is all that changes.
 
 Interactive work takes the same flags:
 
@@ -126,10 +138,11 @@ srun --qos=general --gpus=2 --pty bash -i
 A preempted spot job is requeued, so it will run again from the start unless it can resume. Write checkpoints to your project directory and look for one on startup:
 
 ```
-#!/bin/bash -l
+#!/bin/bash
 #SBATCH --qos=spot --gpus=1 --requeue
 module load pytorch
-python train.py --checkpoint-dir /project/$GROUP/ckpt --resume-if-exists
+# your own script, with whatever checkpoint flags it takes
+python my_train.py --checkpoint-dir /project/<group>/ckpt --resume-if-exists
 ```
 
 Spot is the right choice for large sweeps, scans, and anything that checkpoints cheaply. Keep deadline work on your Project QOS.

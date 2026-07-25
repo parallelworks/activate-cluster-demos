@@ -26,7 +26,7 @@ Your account is provisioned in ACTIVATE at activate.parallel.works; set your pas
 
 The cluster runs Slurm. There is a single GPU partition, `h100`, and it is the default, so you do not have to name it; including `-p h100` is fine and harmless.
 
-Every group has a group QOS, called your Project QOS, and it is your default. It caps the number of GPUs your group can run at once at the number your team was allocated; you never type it. On top of that, `--qos=general` bursts into a shared pool up to a per-group limit, and `--qos=spot` is uncapped and preemptible: spot jobs run on idle GPUs and can be reclaimed with a 10-minute grace window, then requeue, so checkpoint your work. Project and general jobs are never preempted. To see your own QOS, cap, and current usage, run `mylimits` (in `06-qos`, or already on your PATH if support has installed it cluster-wide). `06-qos/README.md` documents the underlying `sacctmgr` commands.
+Every group has a group QOS, called your Project QOS, and it is your default. It caps the number of GPUs your group can run at once at the number your team was allocated; you never type it. On top of that, `--qos=general` bursts into a shared pool up to a per-group limit, and `--qos=spot` is uncapped and preemptible: spot jobs run on idle GPUs and can be reclaimed with a 10-minute grace window, then requeue, so checkpoint your work. Project and general jobs are never preempted. To see your own QOS, cap, and current usage, run `mylimits`, which is installed on the cluster. `06-qos/README.md` documents the underlying `sacctmgr` commands.
 
 ## Run a PyTorch job
 
@@ -37,7 +37,7 @@ srun -p h100 --gpus=1 python 01-pytorch/gputest.py
 
 Returns `cuda_available: True` and `NVIDIA H100 80GB HBM3`. The batch skeleton `01-pytorch/train.sh` shows the 8-GPU `torchrun` form; multi-node adds `--nodes=2 --gpus-per-node=8`, with NCCL over InfiniBand already tuned. The same pattern runs NAMD, OpenMM, and JAX: load the module, then srun or sbatch.
 
-Start every batch script with `#!/bin/bash -l`. See Troubleshooting below for why.
+Ready-made job scripts for the common cases live in `/software/templates/` on the cluster.
 
 ## Containers with pyxis and enroot
 
@@ -85,20 +85,9 @@ Your home `/home/<username>` (small quota) holds code and environments; your gro
 
 ## Troubleshooting
 
-**`module: command not found`, or `python`/`ray`/`jupyter` not found in a job.** This is the most common problem, and it is almost always a login-shell issue. `module` is defined by the shell profile, which only runs in a login shell. An interactive SSH session is a login shell, so `module load pytorch` works when you type it. A batch script is not, so the same line inside a plain `#!/bin/bash` script fails, and every command the module was supposed to provide fails after it.
+**`module: command not found`, or `python` not found in a job.** Modules now work in batch scripts as well as interactive sessions: the cluster sets `MODULEPATH` and defines `module` for non-login shells, so a plain `#!/bin/bash` script with `module load pytorch` works, and the scripts here and in `/software/templates/` rely on that. Do not add `-l` to the shebang; on this cluster a login shell prints a spurious `FATAL: Missing required source file.` line into your job output.
 
-Start batch scripts with a login shell:
-
-```
-#!/bin/bash -l
-#SBATCH -p h100 --gpus=1
-module load pytorch
-python train.py
-```
-
-The same applies to any non-interactive command, for example over SSH: use `pw ssh nodescluster "bash -lc 'module load pytorch; python train.py'"`. If you need a fallback inside a script, `command -v module >/dev/null || source /etc/profile.d/lmod.sh` restores it. The example scripts in this repo all do this.
-
-Watch out for pipes too: `module load pytorch | tee log` runs the load in a subshell, so the module is not loaded in your script. Load first, then run.
+If you do hit a missing `module`, it is almost always one of two things. For a non-interactive command over SSH, wrap it in a login shell: `pw ssh nodescluster "bash -lc 'module load pytorch; python train.py'"`. And watch out for pipes: `module load pytorch | tee log` runs the load in a subshell, so nothing is loaded in your script. Load first, then run.
 
 **`srun` says `execve(): python: No such file or directory`.** The module was not loaded in the environment `srun` inherited. Run `module load pytorch` in the same shell first, then `srun`, and confirm with `command -v python`; it should be under `/software`.
 

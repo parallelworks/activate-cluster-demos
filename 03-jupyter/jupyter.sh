@@ -1,7 +1,6 @@
-#!/bin/bash -l
+#!/bin/bash
 #SBATCH -p h100 --gpus=1 --time=08:00:00 -J jupyter
-# `#!/bin/bash -l` gives a login shell so `module` is defined; see 01-pytorch/train.sh.
-command -v module >/dev/null 2>&1 || source /etc/profile.d/lmod.sh
+#SBATCH --output=%x-%j.out
 module load pytorch
-# The token URL is written to slurm-<jobid>.out about 30-50 seconds after start.
+# The token URL appears in the job output 30-50 seconds after the job starts.
 jupyter lab --no-browser --ip=0.0.0.0 --port=8888

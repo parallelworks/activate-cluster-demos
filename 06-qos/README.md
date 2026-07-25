@@ -12,28 +12,36 @@ Project and general jobs are never preempted. Caps bound the GPUs you can run at
 
 ### The short way: `mylimits`
 
+`mylimits` is installed on the cluster and answers this in one shot:
+
 ```
 mylimits
 ```
 
 ```
-  User          jsmith
-  Account       my-group
-  Default QOS   my-group   (applied automatically when you do not pass --qos)
+Slurm access for jsmith
 
-  QOS            GPU cap    Per-group    Priority  Preemptible
-  ---------------------------------------------------------------------------
-  my-group       11         -            3000      no
-  general        40         5            2000      no
-  spot           no cap     -            1000      yes (00:10:00 grace)
+  PROJECT (ACCOUNT)                  QOS YOU MAY USE
+  my-group                           my-group,general,spot (default)
 
-  Right now
-  ---------------------------------------------------------------------------
-  Running       2 job(s), 6 GPU(s)
-  Pending       3 job(s), of which 1 waiting at your GPU cap (QOSGrpGRES)
+Tier limits
+  QOS            GPU LIMIT                    MAX WALLTIME   NOTES
+  spot           unlimited                    1-00:00:00     interruptible - can be requeued
+  general        5 per project (pool 40)      3-00:00:00     shared burst pool
+  my-group       11 GPUs                      none
+
+Your jobs right now
+  running: 0   pending: 0   GPUs in use: 0
+
+Storage
+  PATH                       USED       SIZE
+  /home/jsmith (home)        3.1G       1.0T
+  /project/my-group          412G       50T
 ```
 
-It reads the accounting database and changes nothing, so it is safe to run any time. If it is not on your `PATH` yet, run it from this repo with `bash 06-qos/mylimits`, or ask support to install it cluster-wide (`sudo install -m 0755 mylimits /software/bin/mylimits`).
+It only reads the accounting database and the filesystem, so it is safe to run any time. You see your own group's limits; the shared `general` pool and `spot` are visible to everyone.
+
+Ready-made job scripts live in `/software/templates/` on the cluster (single-GPU, multi-GPU, multi-node, container, spot, burst). Copy one and edit it rather than starting from scratch.
 
 The rest of this page is what `mylimits` runs underneath, useful when you want a specific field or are scripting against it.
 
